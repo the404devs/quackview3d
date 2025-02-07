@@ -34,7 +34,7 @@ loader.load("/models/model.stl", function (geometry) {
 });
 */
 // After loading the STL model
-loader.load('/models/model.stl', function (geometry) {
+loader.load('models/model.stl', function (geometry) {
     const material = new THREE.MeshPhongMaterial({ color: 0x00ff00, specular: 0x111111, shininess: 200 });
     const mesh = new THREE.Mesh(geometry, material);
   
