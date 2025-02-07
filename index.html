@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D STL Viewer</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+    .dg.ac {
+        z-index: 1000; /* Ensure it's on top */
+    }
+    #controls button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #controls button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
+    <button id="rotate-left">Rotate Left</button>
+    <button id="rotate-right">Rotate Right</button>
+    <button id="zoom-in">Zoom In</button>
+    <button id="zoom-out">Zoom Out</button>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
