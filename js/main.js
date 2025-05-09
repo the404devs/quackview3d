@@ -2,6 +2,21 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+
+
+const colorMap = {
+	"pink": new THREE.MeshPhongMaterial({ color: 0xffaaaa, specular: 0x111111, shininess: 200 }),
+	"orange": new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 }),
+	"yellow": new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 }),
+	"green": new THREE.MeshPhongMaterial({ color: 0x00ff00, specular: 0x111111, shininess: 200 }),
+	"white": new THREE.MeshPhongMaterial({ color: 0xffffff, specular: 0x111111, shininess: 200 }),
+	"black": new THREE.MeshPhongMaterial({ color: 0x000000, specular: 0x111111, shininess: 200 }),
+	"grey": new THREE.MeshPhongMaterial({ color: 0x555555, specular: 0x111111, shininess: 200 }),
+	"red": new THREE.MeshPhongMaterial({ color: 0xff0000, specular: 0x111111, shininess: 200 }),
+	"blue": new THREE.MeshPhongMaterial({ color: 0x0000ff, specular: 0x111111, shininess: 200 }),
+	"purple": new THREE.MeshPhongMaterial({ color: 0xff00ff, specular: 0x111111, shininess: 200 })
+}
+
 // Scene setup
 const scene = new THREE.Scene();
 const renderTarget = document.getElementById('render-target');
@@ -130,6 +145,15 @@ function createCard(mesh, filename, id) {
         foot.appendChild(span);
     });
 
+	const colorSelector = document.createElement("select");
+	colorSelector.onchange = (e) => {setModelColor(card, id, e)};
+	Object.keys(colorMap).forEach(color => {
+		const opt = document.createElement("option");
+		opt.value = color;
+		opt.textContent = color;
+		colorSelector.appendChild(opt);
+	})
+	foot.appendChild(colorSelector);
     card.appendChild(head);
     card.appendChild(foot);
     cardTarget.appendChild(card);
@@ -144,9 +168,7 @@ function uploadModel() {
   const fileList = this.files; /* now you can work with the file list */
   Array.from(fileList).forEach(file => {
     loader.load(URL.createObjectURL(file), function (geometry) {
-
-    
-      const material = new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 });
+      const material = colorMap["pink"];
       mesh = new THREE.Mesh(geometry, material);
       mesh.rotation.x = -Math.PI/2;
   
@@ -167,7 +189,7 @@ function uploadModel() {
       
       
       const box = new THREE.Box3().setFromObject(mesh);
-      const boxHelper = new THREE.Box3Helper(box, 0xffff00);
+      const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
       scene.add(boxHelper);
   
       bboxes.push(boxHelper);
@@ -227,9 +249,20 @@ function scaleModel(card, id, e) {
     mesh.geometry.scale(targetL / currentL, targetW / currentW, targetH / currentH);
     mesh.position.y = (targetH/2);
 
+	
     scene.remove(bboxes[id]);
     const box = new THREE.Box3().setFromObject(mesh);
-    const boxHelper = new THREE.Box3Helper(box, 0xffff00);
+    const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
+    scene.add(boxHelper);
+    bboxes[id] = boxHelper;
+}
+
+function setModelColor(card, id, e) {
+	mesh.material = colorMap[e.target.value];
+
+	scene.remove(bboxes[id]);
+    const box = new THREE.Box3().setFromObject(mesh);
+    const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
     scene.add(boxHelper);
     bboxes[id] = boxHelper;
 }

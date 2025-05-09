@@ -176,7 +176,7 @@ button:hover::before, select:hover::before {
     padding: 10px;
     align-self: center;
     /* width: 80%; */
-    height: 40px;
+    /* height: 40px; */
     line-height: 35px;
     /* background: black; */
     display: flex;
