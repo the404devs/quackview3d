@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-
+const LAYER_HEIGHT = 0.2;
 
 const colorMap = {
 	"pink": new THREE.MeshPhongMaterial({ color: 0xffaaaa, specular: 0x111111, shininess: 200 }),
@@ -123,6 +123,11 @@ function createCard(mesh, filename, id) {
     span.appendChild(unit);
     foot.appendChild(span);
 
+	const layers = document.createElement("label");
+	layers.id = "layer-count";
+	layers.textContent = `${Math.ceil((mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y).toFixed(2) / LAYER_HEIGHT)} layers`;
+	foot.appendChild(layers);
+	
     ["x", "y", "z"].forEach(dim => {
         const span = document.createElement('span');
         span.classList.add('dimension');
@@ -144,7 +149,6 @@ function createCard(mesh, filename, id) {
         span.appendChild(unit);
         foot.appendChild(span);
     });
-
 	const colorSelector = document.createElement("select");
 	colorSelector.onchange = (e) => {setModelColor(card, id, e)};
 	Object.keys(colorMap).forEach(color => {
@@ -157,7 +161,6 @@ function createCard(mesh, filename, id) {
     card.appendChild(head);
     card.appendChild(foot);
     cardTarget.appendChild(card);
-
 }
 
 function uploadTrigger() {
@@ -235,16 +238,18 @@ function scaleModel(card, id, e) {
     const xInput = card.querySelector('#x');
     const yInput = card.querySelector('#y');
     const zInput = card.querySelector('#z');
-
+	const layerCount = card.querySelector('#layer-count');
 
     xInput.value = targetL.toFixed(2);
     xInput.style.color = targetL > buildVolume ? 'red' : 'grey';
     
-    card.querySelector('#y').value = targetW.toFixed(2);
+    yInput.value = targetW.toFixed(2);
     yInput.style.color = targetW > buildVolume ? 'red' : 'grey';
     
-    card.querySelector('#z').value = targetH.toFixed(2);
+    zInput.value = targetH.toFixed(2);
     zInput.style.color = targetH > buildVolume ? 'red' : 'grey';
+
+	layerCount.textContent = `${Math.ceil(targetH.toFixed(2) / LAYER_HEIGHT)} layers`;
 
     mesh.geometry.scale(targetL / currentL, targetW / currentW, targetH / currentH);
     mesh.position.y = (targetH/2);
