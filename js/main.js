@@ -125,7 +125,7 @@ function createCard(mesh, filename, id) {
 
 	const layers = document.createElement("label");
 	layers.id = "layer-count";
-	layers.textContent = `${Math.ceil((mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y).toFixed(2) / LAYER_HEIGHT)} layers`;
+	layers.textContent = `${Math.ceil((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z).toFixed(2) / LAYER_HEIGHT)} layers`;
 	foot.appendChild(layers);
 	
     ["x", "y", "z"].forEach(dim => {
