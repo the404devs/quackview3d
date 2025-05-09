@@ -122,11 +122,12 @@ button:hover::before, select:hover::before {
     box-shadow: rgba(0, 0, 0, 0.5) 0px -2px 10px;
     margin: 5px;
     height: 800px;
+    overflow: hidden;
 }
 
 .container {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    /* margin-top: 10px; */
+    /* margin-bottom: 10px; */
 }
 
 .container#card-container {
@@ -312,3 +313,4 @@ div#path-display {
     margin-bottom: 5px;
     align-items: center;
 }
+

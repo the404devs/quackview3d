@@ -59,43 +59,7 @@ let mesh;
 let meshOGSizes = [];
 let bboxes = [];
 let i = 0;
-loader.load('public/models/Mr. Quackers.stl', function (geometry) {
 
-    
-    const material = new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 });
-    mesh = new THREE.Mesh(geometry, material);
-    mesh.rotation.x = -Math.PI/2;
-
-    geometry.center();
-    
-    // Add to scene
-    scene.add(mesh);
-    mesh.translateZ((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z)/2);    // Center the model
-    console.log(mesh.geometry.boundingBox.max.x - mesh.geometry.boundingBox.min.x);
-    console.log(mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y);
-    console.log(mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z);
-
-    console.log(mesh.geometry);
-
-    createCard(mesh, "Mr. Quackers", i);
-
-    geometry.computeBoundingBox();
-    
-    
-    const box = new THREE.Box3().setFromObject(mesh);
-    const boxHelper = new THREE.Box3Helper(box, 0xffff00);
-    scene.add(boxHelper);
-
-    bboxes.push(boxHelper);
-
-    meshOGSizes.push(mesh.geometry.boundingBox.clone());
-    i++;
-    
-    animate();
-
-}, undefined, function ( error ) {
-    console.error( error );
-});
 
 // Camera position
 // camera.position.z = 100;
@@ -172,6 +136,56 @@ function createCard(mesh, filename, id) {
 
 }
 
+function uploadTrigger() {
+  document.getElementById("file-upload-input").click();
+}
+
+function uploadModel() {
+  const fileList = this.files; /* now you can work with the file list */
+  Array.from(fileList).forEach(file => {
+    loader.load(URL.createObjectURL(file), function (geometry) {
+
+    
+      const material = new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 });
+      mesh = new THREE.Mesh(geometry, material);
+      mesh.rotation.x = -Math.PI/2;
+  
+      geometry.center();
+      
+      // Add to scene
+      scene.add(mesh);
+      mesh.translateZ((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z)/2);    // Center the model
+      console.log(mesh.geometry.boundingBox.max.x - mesh.geometry.boundingBox.min.x);
+      console.log(mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y);
+      console.log(mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z);
+  
+      console.log(mesh.geometry);
+  
+      createCard(mesh, file.name, i);
+  
+      geometry.computeBoundingBox();
+      
+      
+      const box = new THREE.Box3().setFromObject(mesh);
+      const boxHelper = new THREE.Box3Helper(box, 0xffff00);
+      scene.add(boxHelper);
+  
+      bboxes.push(boxHelper);
+  
+      meshOGSizes.push(mesh.geometry.boundingBox.clone());
+      i++;
+      
+      animate();
+  
+  }, undefined, function ( error ) {
+      console.error( error );
+    });
+  });
+}
+
+document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
+document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
+
 function scaleModel(card, id, e) {
     mesh.geometry.computeBoundingBox();
     // bboxes[id].geometry.computeBoundingBox();
@@ -218,7 +232,7 @@ function scaleModel(card, id, e) {
     const boxHelper = new THREE.Box3Helper(box, 0xffff00);
     scene.add(boxHelper);
     bboxes[id] = boxHelper;
-};
+}
 
 // Handle window resize
 window.addEventListener('resize', () => {
