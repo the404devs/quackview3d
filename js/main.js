@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-const LAYER_HEIGHT = 0.2;
+const LAYER_HEIGHT = 0.2;// mm
+const AVG_LAYER_TIME = 2;// minute
 
 const colorMap = {
 	"pink": new THREE.MeshPhongMaterial({ color: 0xffaaaa, specular: 0x111111, shininess: 200 }),
@@ -125,8 +126,13 @@ function createCard(mesh, filename, id) {
 
 	const layers = document.createElement("span");
 	layers.id = "layer-count";
-	layers.textContent = `${Math.ceil((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z).toFixed(2) / LAYER_HEIGHT)} layers`;
+	const layerCount = Math.ceil((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z).toFixed(2) / LAYER_HEIGHT);
+	layers.textContent = `${layerCount} layers`;
 	foot.appendChild(layers);
+	const time = document.createElement("span");
+	time.id = "time-estimate";
+	time.textContent = `${Math.floor(layerCount/AVG_LAYER_TIME)} minutes`;
+	foot.appendChild(time);
 	
     ["x", "y", "z"].forEach(dim => {
         const span = document.createElement('span');
@@ -238,8 +244,9 @@ function scaleModel(card, id, e) {
     const xInput = card.querySelector('#x');
     const yInput = card.querySelector('#y');
     const zInput = card.querySelector('#z');
-	const layerCount = card.querySelector('#layer-count');
-
+	const layers = card.querySelector('#layer-count');
+	const timeEst = card.querySelector('#time-estimate');
+	
     xInput.value = targetL.toFixed(2);
     xInput.style.color = targetL > buildVolume ? 'red' : 'grey';
     
@@ -248,9 +255,9 @@ function scaleModel(card, id, e) {
     
     zInput.value = targetH.toFixed(2);
     zInput.style.color = targetH > buildVolume ? 'red' : 'grey';
-
-	layerCount.textContent = `${Math.ceil(targetH.toFixed(2) / LAYER_HEIGHT)} layers`;
-
+	const layerCount = Math.ceil(targetH.toFixed(2) / LAYER_HEIGHT);
+	layers.textContent = `${layerCount} layers`;
+	timeEst.textContent = `${Math.floor(layerCount / AVG_LAYER_TIME)} minutes`;
     mesh.geometry.scale(targetL / currentL, targetW / currentW, targetH / currentH);
     mesh.position.y = (targetH/2);
 
