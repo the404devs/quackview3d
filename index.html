@@ -1,37 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D STL Viewer</title>
-  <style>
-    body { margin: 0; }
-    canvas { display: block; }
-    .dg.ac {
-        z-index: 1000; /* Ensure it's on top */
-    }
-    #controls button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      cursor: pointer;
-      border-radius: 5px;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="./css/style.css">
+    <link rel="shortcut icon" type="image/x-icon" href="img/clock.png">
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.176.0/examples/jsm/"
+          }
+        }
+    </script>
+    <title>QuackView3D</title>
+  </head>
+  <body onload="">
+    <div id="root">
+      <h1>QuackView3D</h1>
+      <div style="display: flex;">
+        <div class="column" style="flex-basis: 75%;">
+          <div class="container" id="render-target" style="width: 100%; height: 98%; border:none"></div>
+        </div>
+        <div class="column" style="flex-basis: 25%;">
+          <div class="container" id="card-container"></div>
+        </div>
+      </div>
+      <div class="footer subtle">
+        <!-- <span>Minecraft Autocrafing Factory</span>
+        <span>First World - 11th Anniversary</span>
+        <span>2024-12-04</span> -->
+      </div>
+    </div>
+    <script type="module" src="./js/main.js"></script>
 
-    #controls button:hover {
-      background-color: #45a049;
-    }
-  </style>
-</head>
-<body>
-  <div id="controls" style="position: absolute; top: 10px; left: 10px; z-index: 1000;">
-    <button id="rotate-left">Rotate Left</button>
-    <button id="rotate-right">Rotate Right</button>
-    <button id="zoom-in">Zoom In</button>
-    <button id="zoom-out">Zoom Out</button>
-  </div>
-  <script type="module" src="/src/main.js"></script>
-</body>
+  </body>
 </html>

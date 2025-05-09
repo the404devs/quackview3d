@@ -1,2 +1,3 @@
-# Demo-3d-veiwer
-DEMO
+# QuackView3D
+
+duck, but in 3d
