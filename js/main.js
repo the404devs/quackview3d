@@ -123,7 +123,7 @@ function createCard(mesh, filename, id) {
     span.appendChild(unit);
     foot.appendChild(span);
 
-	const layers = document.createElement("label");
+	const layers = document.createElement("span");
 	layers.id = "layer-count";
 	layers.textContent = `${Math.ceil((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z).toFixed(2) / LAYER_HEIGHT)} layers`;
 	foot.appendChild(layers);
