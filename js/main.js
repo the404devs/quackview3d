@@ -245,6 +245,7 @@ function uploadModel() {
 			console.error( error );
 		});
  	});
+	document.getElementById("file-upload-input").value = "";
 }
 
 document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
