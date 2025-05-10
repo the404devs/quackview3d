@@ -27,7 +27,6 @@ span {
     /* width: 100%; */
     /* margin-right: 20px; */
     font-size: 14px;
-    font-style: italic;
 }
 
 p {
@@ -51,7 +50,7 @@ pre {
     /* margin-bottom: 10px; */
 }
 
-button, select {
+button {
     margin: 2px;
     font-family: 'Raleway', 'Arial', sans-serif;
     background: transparent;
@@ -115,7 +114,7 @@ button:hover::before, select:hover::before {
     -ms-flex: 1;
     -webkit-flex: 1;
     flex: 1;
-    padding: 10px;
+    /* padding: 10px; */
     text-align: center;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -125,15 +124,26 @@ button:hover::before, select:hover::before {
     overflow: hidden;
 }
 
+body > svg {
+    display: none;
+}
+
 .container {
-    /* margin-top: 10px; */
-    /* margin-bottom: 10px; */
+    position: relative;
+}
+
+.container > span {
+    position: absolute;
+    font-weight: bold;
+    bottom: 5px;
+    left: 5px;
+    text-align: left;
 }
 
 .container#card-container {
     overflow-y: scroll;
-    height: 100%;
-    margin: 0;
+    /* height: 100%; */
+    margin-top: 10px;
     border-top: 1px solid var(--border-transparent);
     border-bottom: 1px solid var(--border-transparent)
 }
@@ -146,18 +156,14 @@ button:hover::before, select:hover::before {
     flex-wrap: wrap;
     font-family: 'Raleway', 'Arial', sans-serif;
     font-size: 18px;
-    text-decoration: underline;
     margin: 15px;
-    cursor: pointer;
-    transition: 0.1s transform;
+    transition: 0.1s transform, 0.2s background-color;
     overflow: hidden;
     background-color: lightgreen;
 }
 
-/* .card:hover {
-    transform: scale(1.02);
-} */
 
+    
 .card img {
     /* width: 32px; */
     /* height: 32px; */
@@ -170,20 +176,56 @@ button:hover::before, select:hover::before {
 }
 
 .card h3 {
-    flex-basis: 75%;
+    flex-basis: 90%;
+    text-decoration: underline;
     text-align: left;
     margin: 0;
-    padding: 10px;
+    padding: 15px 10px;
     align-self: center;
     /* width: 80%; */
     /* height: 40px; */
-    line-height: 35px;
+    /* line-height: 35px; */
     /* background: black; */
     display: flex;
+    transition: 0.2s color;
+    font-size: 1.17em;
+}
+
+span.text-button {
+    text-decoration: none;
+    color: inherit;
+    /* font-size: 48px; */
+    cursor: pointer;
+    flex-basis: 10%;
+    padding: 15px 10px;
+    justify-content: end;
+    display: flex;
+    font-size: 1.17em;
+    /* line-height: 35px; */
+}
+
+span.text-button > svg > path {
+    fill: inherit;
+    transition: 0.2s fill;
+}
+
+span.text-button:hover > svg > path {
+    fill: red;
+}
+
+span.text-button > svg {
+    width: 25px;
+    height: 25px;
 }
 
 .card div {
     flex-basis: 100%;
+}
+
+.card .card-head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
 
 .card .card-foot {
@@ -195,30 +237,61 @@ button:hover::before, select:hover::before {
     text-align: left;
 }
 
-.dimension {
-    width: 100%;
+.prop-grid {
+    display: grid;
+    grid-template-columns: calc(33% - 5px) calc(33% - 5px) calc(33% - 5px);
+    grid-template-rows: auto auto;
+    gap: 5px;
+    margin: 5px;
+    align-items: center;
+    border-bottom: 1px solid grey;
+    padding-bottom: 10px;
+}
+
+.prop-grid:last-of-type {
+    border-bottom: none;
+}
+
+.prop-head {
+    font-weight: bold;
+}
+
+.prop {
+    width: calc(100% - 20px);
+    height: 20px;
     display: flex;
     align-items: center;
     padding: 5px 10px;
+    background-color: black;
+    border: 1px solid white;
+    font-style: italic;
+    color: white;
+    font-size: 16px;
 }
 
-.dimension > label:first-of-type {
+.prop > label:first-of-type {
     font-weight: bold;
-
 }
 
-.dimension input {
+.prop#cost-estimate, .prop#time-estimate {
+    font-weight: bold;
+}
+
+select.prop {
+    height: 32px;
+}
+
+/* .card input {
     color: white;
     border: 1px solid white;
     width: 50px;
     padding: 5px;
     margin: 5px;
-    /* border-color: white; */
     background-color: black;
-}
+} */
 
-.dimension input:read-only {
-    color: grey;
+input.prop:read-only {
+    color: darkgrey;
     border: none;
 }
 
@@ -226,6 +299,11 @@ button:hover::before, select:hover::before {
     margin: 10px;
     margin-top: 5px;
     color: white;
+}
+
+.card .head button {
+    text-decoration: none;
+    color: inherit;
 }
 
 .card button.link:hover {
@@ -313,4 +391,3 @@ div#path-display {
     margin-bottom: 5px;
     align-items: center;
 }
-

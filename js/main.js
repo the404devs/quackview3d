@@ -4,18 +4,21 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const LAYER_HEIGHT = 0.2;// mm
 const AVG_LAYER_TIME = 2;// minute
+const BUILD_VOLUME = 180;
+const HOURLY_RATE = 0.5;
+const closeTemplate = document.getElementById("close");
 
 const colorMap = {
-	"pink": new THREE.MeshPhongMaterial({ color: 0xffaaaa, specular: 0x111111, shininess: 200 }),
-	"orange": new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 }),
-	"yellow": new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 }),
-	"green": new THREE.MeshPhongMaterial({ color: 0x00ff00, specular: 0x111111, shininess: 200 }),
-	"white": new THREE.MeshPhongMaterial({ color: 0xffffff, specular: 0x111111, shininess: 200 }),
-	"black": new THREE.MeshPhongMaterial({ color: 0x000000, specular: 0x111111, shininess: 200 }),
-	"grey": new THREE.MeshPhongMaterial({ color: 0x555555, specular: 0x111111, shininess: 200 }),
+	"pink": new THREE.MeshPhongMaterial({ color: 0xffc0cb, specular: 0x111111, shininess: 200 }),
 	"red": new THREE.MeshPhongMaterial({ color: 0xff0000, specular: 0x111111, shininess: 200 }),
+	"orange": new THREE.MeshPhongMaterial({ color: 0xffa500, specular: 0x111111, shininess: 200 }),
+	"yellow": new THREE.MeshPhongMaterial({ color: 0xffff00, specular: 0x111111, shininess: 200 }),
+	"green": new THREE.MeshPhongMaterial({ color: 0x008000, specular: 0x111111, shininess: 200 }),
 	"blue": new THREE.MeshPhongMaterial({ color: 0x0000ff, specular: 0x111111, shininess: 200 }),
-	"purple": new THREE.MeshPhongMaterial({ color: 0xff00ff, specular: 0x111111, shininess: 200 })
+	"purple": new THREE.MeshPhongMaterial({ color: 0x800080, specular: 0x111111, shininess: 200 }),
+	"white": new THREE.MeshPhongMaterial({ color: 0xffffff, specular: 0x111111, shininess: 200 }),
+	"grey": new THREE.MeshPhongMaterial({ color: 0x808080, specular: 0x111111, shininess: 200 }),
+	"black": new THREE.MeshPhongMaterial({ color: 0x222222, specular: 0x111111, shininess: 200 })
 }
 
 // Scene setup
@@ -23,24 +26,32 @@ const scene = new THREE.Scene();
 const renderTarget = document.getElementById('render-target');
 const cardTarget = document.getElementById('card-container');
 // const camera = new THREE.PerspectiveCamera(75, renderTarget.clientWidth / renderTarget.clientHeight, 0.1, 1000);
+const camera = new THREE.OrthographicCamera();
 const aspect = renderTarget.clientWidth / renderTarget.clientHeight;
-const frustumHeight = 500; // You can adjust this to zoom in/out
-const frustumWidth = frustumHeight * aspect;
-const camera = new THREE.OrthographicCamera(
-    -frustumWidth / 2,  // left
-    frustumWidth / 2,  // right
-    frustumHeight / 2, // top
-    -frustumHeight / 2, // bottom
-    0.1,               // near
-    1000               // far
-);
+const viewSize = BUILD_VOLUME * 1.2; // Add margin (e.g. 20%)
+let width, height;
+if (aspect >= 1) {
+	width = viewSize * aspect;
+	height = viewSize;
+} else {
+	width = viewSize;
+	height = viewSize / aspect;
+}
 
-camera.position.set(404, 404, 500); // Set a position looking toward the origin
-camera.lookAt(0, 0, 0);
+// Update orthographic camera frustum
+camera.left = -width / 2;
+camera.right = width / 2;
+camera.top = height / 2;
+camera.bottom = -height / 2;
+camera.near = -1000;
+camera.far = 1000;
+camera.updateProjectionMatrix();
+
+// Position camera looking directly at the cube center
+camera.position.set(BUILD_VOLUME/2, BUILD_VOLUME/2, BUILD_VOLUME);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
-
-
 renderTarget.appendChild(renderer.domElement);
 
 // Lighting
@@ -52,172 +63,219 @@ directionalLight.position.set(1, 1, 1).normalize();
 scene.add(directionalLight);
 
 
-
-
-const buildVolume = 180;
-
-const boxGeometry = new THREE.BoxGeometry(buildVolume, buildVolume, buildVolume);
+const boxGeometry = new THREE.BoxGeometry(BUILD_VOLUME, BUILD_VOLUME, BUILD_VOLUME);
 const edges = new THREE.EdgesGeometry(boxGeometry); // Only outer edges
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+const lineMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
 const printableArea = new THREE.LineSegments(edges, lineMaterial);
-printableArea.position.y = buildVolume/2;
+printableArea.position.y = BUILD_VOLUME/2;
 scene.add(printableArea);
 
-const geometry = new THREE.BoxGeometry( buildVolume, 0, buildVolume );
+const geometry = new THREE.BoxGeometry( BUILD_VOLUME, 0, BUILD_VOLUME );
 const material = new THREE.MeshBasicMaterial( { color: 0x111111 } );
 const basePlate = new THREE.Mesh( geometry, material );
 scene.add(basePlate);
 
 
 const loader = new STLLoader();
-let mesh;
 
+let meshes = [];
 let meshOGSizes = [];
 let bboxes = [];
 let i = 0;
-
-
-// Camera position
-// camera.position.z = 100;
 
 // OrbitControls for interaction
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; // Smooth movement
 controls.dampingFactor = 0.05;
 
+
+
 // Animation loop
 function animate() {
-  requestAnimationFrame(animate);
-
-//   mesh.rotation.z += 0.01;
-  controls.update(); // Required for damping
-  renderer.render(scene, camera);
+	requestAnimationFrame(animate);
+	
+	//   mesh.rotation.z += 0.01;
+	controls.update(); // Required for damping
+	renderer.render(scene, camera);
 }
 
+animate();
 
-function createCard(mesh, filename, id) {
+function createCard(filename, id, initialColor) {
     const card = document.createElement('div');
     card.classList.add('card');
+	card.style.backgroundColor = initialColor;
     //todo: image here
 
-    const head = document.createElement('h3');
-    head.textContent = filename;
+    const head = document.createElement('div');
+	head.classList.add('card-head');
+    const title = document.createElement('h3');
+    title.textContent = filename;
+	if (initialColor == "black") {
+		head.style.color = "white";
+		head.style.fill = "white";
+	} else {
+		head.style.color = "black";
+		head.style.fill = "black";
+	}
+	head.appendChild(title);
+
+	const deleteButton = document.createElement('span');
+	deleteButton.classList.add("text-button");
+	deleteButton.innerHTML = closeTemplate.outerHTML;
+	deleteButton.onclick = (e) => { removeModel(card, id, e) };
+	head.appendChild(deleteButton);
 
     const foot = document.createElement('div');
     foot.classList.add('card-foot');
-    
-    const span = document.createElement('span');
-    span.classList.add('dimension');
-    const label = document.createElement('label');
-    label.textContent = "Scale: ";
-    const scale = document.createElement('input');
-    scale.type = 'number';
-    scale.value = 100;
-    scale.min = 0;
-    scale.step = 5;
-    scale.onchange = (e) => {scaleModel(card, id, e)};
 
-    const unit = document.createElement('label');
-    unit.textContent = "%";
-    span.appendChild(label);
-    span.appendChild(scale);
-    span.appendChild(unit);
-    foot.appendChild(span);
+	const primaryGroup = document.createElement("div");
+	primaryGroup.classList.add("prop-grid");
+	primaryGroup.style.gridTemplateColumns = "auto auto";
 
-	const layers = document.createElement("span");
-	layers.id = "layer-count";
-	const layerCount = Math.ceil((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z).toFixed(2) / LAYER_HEIGHT);
-	layers.textContent = `${layerCount} layers`;
-	foot.appendChild(layers);
-	const time = document.createElement("span");
-	time.id = "time-estimate";
-	time.textContent = `${Math.floor(layerCount/AVG_LAYER_TIME)} minutes`;
-	foot.appendChild(time);
-	
-    ["x", "y", "z"].forEach(dim => {
-        const span = document.createElement('span');
-        span.classList.add('dimension');
-        const label = document.createElement('label');
-        label.textContent = dim.toUpperCase() + ": ";
+	const scaleHead = document.createElement("span");
+	scaleHead.classList.add("prop-head");
+	scaleHead.textContent = "Scale (%):";
+	primaryGroup.appendChild(scaleHead);
 
-        const exact = document.createElement('input');
-        exact.type = 'number';
-        exact.id = dim;
-        exact.value = (mesh.geometry.boundingBox.max[dim] - mesh.geometry.boundingBox.min[dim]).toFixed(2);
+	const colorHead = document.createElement("span");
+	colorHead.classList.add("prop-head");
+	colorHead.textContent = "Colour:";
+	primaryGroup.appendChild(colorHead);
 
-        exact.readOnly = true;
+	const scaleInput = document.createElement("input");
+	scaleInput.classList.add("prop");
+	scaleInput.type = 'number';
+    scaleInput.value = 100;
+    scaleInput.min = 0;
+    scaleInput.step = 5;
+	scaleInput.id = "scale";
+    scaleInput.onchange = (e) => {scaleModel(card, id, e)};
+	primaryGroup.appendChild(scaleInput);
 
-        const unit = document.createElement('label');
-        unit.textContent = "mm";
-
-        span.appendChild(label);
-        span.appendChild(exact);
-        span.appendChild(unit);
-        foot.appendChild(span);
-    });
 	const colorSelector = document.createElement("select");
-	colorSelector.onchange = (e) => {setModelColor(card, id, e)};
+	colorSelector.classList.add("prop");
 	Object.keys(colorMap).forEach(color => {
 		const opt = document.createElement("option");
 		opt.value = color;
 		opt.textContent = color;
 		colorSelector.appendChild(opt);
-	})
-	foot.appendChild(colorSelector);
+	});
+	colorSelector.value = initialColor;
+	colorSelector.onchange = (e) => {setModelColor(card, id, e)};
+	primaryGroup.appendChild(colorSelector);
+
+	foot.appendChild(primaryGroup);
+	
+
+	const dimensionGroup = generatePropGrid(["Length (mm)", "Width (mm)", "Height (mm)"], ["x", "y", "z"], "input");
+	foot.appendChild(dimensionGroup);
+
+	const estimateGroup = generatePropGrid(["Layers", "Time (minutes)", "Cost"], ["layer-count", "time-estimate", "cost-estimate"], "span");
+	foot.appendChild(estimateGroup);
+
     card.appendChild(head);
     card.appendChild(foot);
     cardTarget.appendChild(card);
+
+	return card;
 }
 
+function generatePropGrid(headers, elemIds, type) {
+	const grid = document.createElement("div");
+	grid.classList.add("prop-grid");
+
+	headers.forEach(header => {
+		const h = document.createElement("span");
+		h.classList.add("prop-head");
+		h.textContent = header+":";
+		grid.appendChild(h);
+	});	
+
+	elemIds.forEach(id => {
+		const e = document.createElement(type);
+		e.classList.add("prop");
+		e.id = id;
+		grid.appendChild(e);
+	});
+
+	return grid;
+}
+
+
 function uploadTrigger() {
-  document.getElementById("file-upload-input").click();
+	document.getElementById("file-upload-input").click();
 }
 
 function uploadModel() {
-  const fileList = this.files; /* now you can work with the file list */
-  Array.from(fileList).forEach(file => {
-    loader.load(URL.createObjectURL(file), function (geometry) {
-      const material = colorMap["pink"];
-      mesh = new THREE.Mesh(geometry, material);
-      mesh.rotation.x = -Math.PI/2;
+  	const fileList = this.files; 
+  	Array.from(fileList).forEach(file => {
+    	loader.load(URL.createObjectURL(file), function (geometry) {
+			const index = Math.floor(Math.random() * Object.keys(colorMap).length);
+			const key = Object.keys(colorMap)[index];
+			const material = colorMap[key];
+			
+			let mesh = new THREE.Mesh(geometry, material);
+			mesh.rotation.x = -Math.PI/2;
   
-      geometry.center();
+      		geometry.center();
+			const bb = mesh.geometry.boundingBox;
+			const l = bb.max.x - bb.min.x;
+			const w = bb.max.y - bb.min.y;
+			const h = bb.max.z - bb.min.z;
       
-      // Add to scene
-      scene.add(mesh);
-      mesh.translateZ((mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z)/2);    // Center the model
-      console.log(mesh.geometry.boundingBox.max.x - mesh.geometry.boundingBox.min.x);
-      console.log(mesh.geometry.boundingBox.max.y - mesh.geometry.boundingBox.min.y);
-      console.log(mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z);
-  
-      console.log(mesh.geometry);
-  
-      createCard(mesh, file.name, i);
-  
-      geometry.computeBoundingBox();
-      
-      
-      const box = new THREE.Box3().setFromObject(mesh);
-      const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
-      scene.add(boxHelper);
-  
-      bboxes.push(boxHelper);
-  
-      meshOGSizes.push(mesh.geometry.boundingBox.clone());
-      i++;
-      
-      animate();
-  
-  }, undefined, function ( error ) {
-      console.error( error );
-    });
-  });
+			// Add to scene
+			scene.add(mesh);
+			mesh.translateZ(h / 2);    // Center the model
+
+			const card = createCard(file.name, i, key);
+			calculateModelProperties( card, l, w, h );
+			geometry.computeBoundingBox();
+
+			const box = new THREE.Box3().setFromObject(mesh);
+			const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
+			scene.add(boxHelper);
+			bboxes.push(boxHelper);
+			meshes.push(mesh);
+			meshOGSizes.push(bb.clone());
+			i++;  
+		}, undefined, function ( error ) {
+			console.error( error );
+		});
+ 	});
 }
 
 document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
 document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
 
+function calculateModelProperties(card, l, w, h) {
+	const layers = card.querySelector('#layer-count');
+	const time = card.querySelector('#time-estimate');
+	const cost = card.querySelector('#cost-estimate');
+	const xInput = card.querySelector('#x');
+    const yInput = card.querySelector('#y');
+    const zInput = card.querySelector('#z');
+
+	const layerCount = Math.ceil(h.toFixed(2) / LAYER_HEIGHT);
+	layers.textContent = `${layerCount}`;
+
+	const timeEstimate = Math.floor(layerCount / AVG_LAYER_TIME);
+	time.textContent = `${timeEstimate}`;
+	const costEstimate = Math.floor((timeEstimate + 14) / 15) * HOURLY_RATE;
+	cost.textContent = `$${costEstimate.toFixed(2)}`;
+
+	xInput.value = l.toFixed(2);
+    xInput.style.color = l > BUILD_VOLUME ? 'red' : 'grey';
+    
+    yInput.value = w.toFixed(2);
+    yInput.style.color = w > BUILD_VOLUME ? 'red' : 'grey';
+    
+    zInput.value = h.toFixed(2);
+    zInput.style.color = h > BUILD_VOLUME ? 'red' : 'grey';
+}
+
 function scaleModel(card, id, e) {
+	const mesh = meshes[id];
     mesh.geometry.computeBoundingBox();
     // bboxes[id].geometry.computeBoundingBox();
     let value = e.target.value;
@@ -241,26 +299,10 @@ function scaleModel(card, id, e) {
 
     console.log("target size", targetL, targetW, targetH);
 
-    const xInput = card.querySelector('#x');
-    const yInput = card.querySelector('#y');
-    const zInput = card.querySelector('#z');
-	const layers = card.querySelector('#layer-count');
-	const timeEst = card.querySelector('#time-estimate');
-	
-    xInput.value = targetL.toFixed(2);
-    xInput.style.color = targetL > buildVolume ? 'red' : 'grey';
-    
-    yInput.value = targetW.toFixed(2);
-    yInput.style.color = targetW > buildVolume ? 'red' : 'grey';
-    
-    zInput.value = targetH.toFixed(2);
-    zInput.style.color = targetH > buildVolume ? 'red' : 'grey';
-	const layerCount = Math.ceil(targetH.toFixed(2) / LAYER_HEIGHT);
-	layers.textContent = `${layerCount} layers`;
-	timeEst.textContent = `${Math.floor(layerCount / AVG_LAYER_TIME)} minutes`;
     mesh.geometry.scale(targetL / currentL, targetW / currentW, targetH / currentH);
     mesh.position.y = (targetH/2);
 
+	calculateModelProperties(card, targetL, targetW, targetH);
 	
     scene.remove(bboxes[id]);
     const box = new THREE.Box3().setFromObject(mesh);
@@ -269,7 +311,15 @@ function scaleModel(card, id, e) {
     bboxes[id] = boxHelper;
 }
 
+function removeModel(card, id, e) {
+	const mesh = meshes[id];
+	scene.remove(mesh);
+	scene.remove(bboxes[id]);
+	card.remove();
+}
+
 function setModelColor(card, id, e) {
+	const mesh = meshes[id];
 	mesh.material = colorMap[e.target.value];
 
 	scene.remove(bboxes[id]);
@@ -277,11 +327,21 @@ function setModelColor(card, id, e) {
     const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
     scene.add(boxHelper);
     bboxes[id] = boxHelper;
+
+	card.style.backgroundColor = e.target.value;
+	const head = card.querySelector(".card-head");
+	if (e.target.value == "black") {
+		head.style.color = "white";
+		head.style.fill = "white";
+	} else {
+		head.style.color = "black";
+		head.style.fill = "black";
+	}
 }
 
 // Handle window resize
 window.addEventListener('resize', () => {
-  camera.aspect = renderTarget.clientWidth / renderTarget.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
+	camera.aspect = renderTarget.clientWidth / renderTarget.clientHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
 });
