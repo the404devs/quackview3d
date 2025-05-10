@@ -279,6 +279,7 @@ span.text-button > svg {
 
 select.prop {
     height: 32px;
+    width: calc(100% + 2px);
 }
 
 /* .card input {

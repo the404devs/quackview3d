@@ -131,11 +131,12 @@ function createCard(filename, id, initialColor) {
 
 	const primaryGroup = document.createElement("div");
 	primaryGroup.classList.add("prop-grid");
-	primaryGroup.style.gridTemplateColumns = "auto auto";
+	// primaryGroup.style.gridTemplateColumns = "auto auto";
 
 	const scaleHead = document.createElement("span");
 	scaleHead.classList.add("prop-head");
 	scaleHead.textContent = "Scale (%):";
+	scaleHead.style.gridColumn = "1 / span 2";
 	primaryGroup.appendChild(scaleHead);
 
 	const colorHead = document.createElement("span");
@@ -150,6 +151,7 @@ function createCard(filename, id, initialColor) {
     scaleInput.min = 0;
     scaleInput.step = 5;
 	scaleInput.id = "scale";
+	scaleInput.style.gridColumn = "1 / span 2";
     scaleInput.onchange = (e) => {scaleModel(card, id, e)};
 	primaryGroup.appendChild(scaleInput);
 
