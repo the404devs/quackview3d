@@ -275,6 +275,7 @@ span.text-button > svg {
 
 .prop#cost-estimate, .prop#time-estimate {
     font-weight: bold;
+    color: lime;
 }
 
 select.prop {

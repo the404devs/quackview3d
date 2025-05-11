@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { DragControls } from 'three/addons/controls/DragControls.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0,0,1);
 
 const LAYER_HEIGHT = 0.2;// mm
 const AVG_MM_TIME = 0.055;
@@ -28,28 +31,10 @@ const renderTarget = document.getElementById('render-target');
 const cardTarget = document.getElementById('card-container');
 // const camera = new THREE.PerspectiveCamera(75, renderTarget.clientWidth / renderTarget.clientHeight, 0.1, 1000);
 const camera = new THREE.OrthographicCamera();
-const aspect = renderTarget.clientWidth / renderTarget.clientHeight;
-const viewSize = BUILD_VOLUME * 1.2; // Add margin (e.g. 20%)
-let width, height;
-if (aspect >= 1) {
-	width = viewSize * aspect;
-	height = viewSize;
-} else {
-	width = viewSize;
-	height = viewSize / aspect;
-}
-
-// Update orthographic camera frustum
-camera.left = -width / 2;
-camera.right = width / 2;
-camera.top = height / 2;
-camera.bottom = -height / 2;
-camera.near = -1000;
-camera.far = 1000;
-camera.updateProjectionMatrix();
+cameraSetup(camera);
 
 // Position camera looking directly at the cube center
-camera.position.set(BUILD_VOLUME/2, BUILD_VOLUME/2, BUILD_VOLUME);
+camera.position.set(-BUILD_VOLUME/2+10, -BUILD_VOLUME/2-10, BUILD_VOLUME/2);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
@@ -60,22 +45,24 @@ const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(1, 1, 1).normalize();
+directionalLight.position.set(-1, -1, 1).normalize();
 scene.add(directionalLight);
-
 
 const boxGeometry = new THREE.BoxGeometry(BUILD_VOLUME, BUILD_VOLUME, BUILD_VOLUME);
 const edges = new THREE.EdgesGeometry(boxGeometry); // Only outer edges
 const lineMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
 const printableArea = new THREE.LineSegments(edges, lineMaterial);
-printableArea.position.y = BUILD_VOLUME/2;
+printableArea.position.z = BUILD_VOLUME/2;
 scene.add(printableArea);
 
-const geometry = new THREE.BoxGeometry( BUILD_VOLUME, 0, BUILD_VOLUME );
+const geometry = new THREE.BoxGeometry( BUILD_VOLUME, BUILD_VOLUME, 0 );
 const material = new THREE.MeshBasicMaterial( { color: 0x111111 } );
 const basePlate = new THREE.Mesh( geometry, material );
 scene.add(basePlate);
 
+const axesHelper = new THREE.AxesHelper( 10 );
+// axesHelper.position.set(-BUILD_VOLUME/2 -1 , -BUILD_VOLUME/2 -1, 0);
+scene.add( axesHelper );
 
 const loader = new STLLoader();
 
@@ -84,23 +71,14 @@ let meshOGSizes = [];
 let bboxes = [];
 let i = 0;
 
-// OrbitControls for interaction
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // Smooth movement
-controls.dampingFactor = 0.05;
-
-
-
 // Animation loop
 function animate() {
 	requestAnimationFrame(animate);
 	
 	//   mesh.rotation.z += 0.01;
-	controls.update(); // Required for damping
+	// controls.update(); // Required for damping
 	renderer.render(scene, camera);
 }
-
-animate();
 
 function createCard(filename, id, initialColor) {
     const card = document.createElement('div');
@@ -161,7 +139,7 @@ function createCard(filename, id, initialColor) {
 	Object.keys(colorMap).forEach(color => {
 		const opt = document.createElement("option");
 		opt.value = color;
-		opt.textContent = color;
+		opt.textContent = color.charAt(0).toUpperCase() + color.slice(1);
 		colorSelector.appendChild(opt);
 	});
 	colorSelector.value = initialColor;
@@ -205,7 +183,6 @@ function generatePropGrid(headers, elemIds, type) {
 	return grid;
 }
 
-
 function uploadTrigger() {
 	document.getElementById("file-upload-input").click();
 }
@@ -219,7 +196,7 @@ function uploadModel() {
 			const material = colorMap[key];
 			
 			let mesh = new THREE.Mesh(geometry, material);
-			mesh.rotation.x = -Math.PI/2;
+			// mesh.rotation.x = -Math.PI/2;
   
       		geometry.center();
 			geometry.computeVertexNormals();
@@ -228,20 +205,17 @@ function uploadModel() {
 			const w = bb.max.y - bb.min.y;
 			const h = bb.max.z - bb.min.z;
       
-			// Add to scene
-			scene.add(mesh);
 			mesh.translateZ(h / 2);    // Center the model
 
 			const card = createCard(file.name, i, key);
 			calculateModelProperties( card, l, w, h, geometry.attributes.position.array );
 			geometry.computeBoundingBox();
 
-			const box = new THREE.Box3().setFromObject(mesh);
-			const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
-			scene.add(boxHelper);
+			const boxHelper = new THREE.BoxHelper(mesh, mesh.material.color);
 			bboxes.push(boxHelper);
 			meshes.push(mesh);
 			meshOGSizes.push(bb.clone());
+			scene.add(mesh, boxHelper);
 			i++;  
 		}, undefined, function ( error ) {
 			console.error( error );
@@ -250,9 +224,6 @@ function uploadModel() {
 	document.getElementById("file-upload-input").value = "";
 }
 
-document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
-document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
-
 function calculateModelProperties(card, l, w, h, positions) {
 	const layers = card.querySelector('#layer-count');
 	const time = card.querySelector('#time-estimate');
@@ -260,6 +231,26 @@ function calculateModelProperties(card, l, w, h, positions) {
 	const xInput = card.querySelector('#x');
     const yInput = card.querySelector('#y');
     const zInput = card.querySelector('#z');
+
+	const layerCount = Math.ceil(h.toFixed(2) / LAYER_HEIGHT);
+	layers.textContent = `${layerCount}`;
+
+	const timeEstimate = computeTimeEstimate(layerCount, positions);
+	time.textContent = `${timeEstimate}`;
+	const costEstimate = Math.floor((timeEstimate + 14) / 15) * HOURLY_RATE;
+	cost.textContent = `$${costEstimate.toFixed(2)}`;
+
+	xInput.value = l.toFixed(2);
+    xInput.style.color = l > BUILD_VOLUME ? 'red' : 'grey';
+    
+    yInput.value = w.toFixed(2);
+    yInput.style.color = w > BUILD_VOLUME ? 'red' : 'grey';
+    
+    zInput.value = h.toFixed(2);
+    zInput.style.color = h > BUILD_VOLUME ? 'red' : 'grey';
+}
+
+function computeTimeEstimate(layerCount, positions) {
 	let minZ = Infinity;
 	let maxZ = -Infinity;
 	// Determine model Z bounds
@@ -268,9 +259,6 @@ function calculateModelProperties(card, l, w, h, positions) {
 		if (z < minZ) minZ = z;
 		if (z > maxZ) maxZ = z;
 	}
-
-	const layerCount = Math.ceil(h.toFixed(2) / LAYER_HEIGHT);
-	layers.textContent = `${layerCount}`;
 
 	let cumulativeArea = 0;
 	for (let i = 0; i < positions.length; i += 9) {
@@ -286,31 +274,16 @@ function calculateModelProperties(card, l, w, h, positions) {
 		
 		const area = computeTriangleArea(a, b, c);
 		const layersSpanned = endLayer - startLayer + 1;
-		// console.log(i, area);
 
 		// Distribute area equally over layers the triangle spans
 		for (let layer = startLayer; layer <= endLayer; layer++) {
 			if (layer >= 0 && layer < layerCount) {
-				// layerAreas[layer] += area / layersSpanned;
 				cumulativeArea += (area / layersSpanned) * INFILL;
 			}
 		}
 	}
 
-	console.log(cumulativeArea);
-	const timeEstimate = Math.floor(cumulativeArea * AVG_MM_TIME);
-	time.textContent = `${timeEstimate}`;
-	const costEstimate = Math.floor((timeEstimate + 14) / 15) * HOURLY_RATE;
-	cost.textContent = `$${costEstimate.toFixed(2)}`;
-
-	xInput.value = l.toFixed(2);
-    xInput.style.color = l > BUILD_VOLUME ? 'red' : 'grey';
-    
-    yInput.value = w.toFixed(2);
-    yInput.style.color = w > BUILD_VOLUME ? 'red' : 'grey';
-    
-    zInput.value = h.toFixed(2);
-    zInput.style.color = h > BUILD_VOLUME ? 'red' : 'grey';
+	return Math.floor(cumulativeArea * AVG_MM_TIME);
 }
 
 function computeTriangleArea(a, b, c) {
@@ -323,7 +296,6 @@ function computeTriangleArea(a, b, c) {
 function scaleModel(card, id, e) {
 	const mesh = meshes[id];
     mesh.geometry.computeBoundingBox();
-    // bboxes[id].geometry.computeBoundingBox();
     let value = e.target.value;
     if (value <= 0) { value = 0.0001 }
 
@@ -343,16 +315,13 @@ function scaleModel(card, id, e) {
     const targetW = originalW * scaleFactor;
     const targetH = originalH * scaleFactor;
 
-    console.log("target size", targetL, targetW, targetH);
-
     mesh.geometry.scale(targetL / currentL, targetW / currentW, targetH / currentH);
-    mesh.position.y = (targetH/2);
+    mesh.position.z = (targetH/2);
 
-	calculateModelProperties(card, targetL, targetW, targetH);
+	calculateModelProperties(card, targetL, targetW, targetH, mesh.geometry.attributes.position.array);
 	
     scene.remove(bboxes[id]);
-    const box = new THREE.Box3().setFromObject(mesh);
-    const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
+    const boxHelper = new THREE.BoxHelper(mesh, mesh.material.color);
     scene.add(boxHelper);
     bboxes[id] = boxHelper;
 }
@@ -385,9 +354,99 @@ function setModelColor(card, id, e) {
 	}
 }
 
+function cameraSetup(camera) {
+	const aspect = renderTarget.clientWidth / renderTarget.clientHeight;
+	const viewSize = BUILD_VOLUME * 1.2; // Add margin (e.g. 20%)
+	let width, height;
+	if (aspect >= 1) {
+		width = viewSize * aspect;
+		height = viewSize;
+	} else {
+		width = viewSize;
+		height = viewSize / aspect;
+	}
+
+	// Update orthographic camera frustum
+	camera.left = -width / 2;
+	camera.right = width / 2;
+	camera.top = height / 2;
+	camera.bottom = -height / 2;
+	camera.near = -1000;
+	camera.far = 1000;
+	camera.updateProjectionMatrix();
+}
+
 // Handle window resize
 window.addEventListener('resize', () => {
-	camera.aspect = renderTarget.clientWidth / renderTarget.clientHeight;
-	camera.updateProjectionMatrix();
+	cameraSetup(camera);
 	renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
 });
+
+document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
+document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
+
+// const controls = new OrbitControls(camera, renderer.domElement);
+// controls.enableDamping = true; // Smooth movement
+// controls.dampingFactor = 0.05;
+
+const raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
+let latestClientX = 0;
+let latestClientY = 0;
+let lastValidPosition = new THREE.Vector3();
+
+const orbitControls = new OrbitControls( camera, renderer.domElement );
+		
+const dragControls = new DragControls( meshes, camera, renderer.domElement );
+dragControls.addEventListener( 'dragstart', function (e) { orbitControls.enabled = false; });
+dragControls.addEventListener( 'dragend', function () { orbitControls.enabled = true; } );
+dragControls.addEventListener( 'drag', function(e) {
+	const mesh = e.object;
+
+	// Ray from camera through mouse
+	raycaster.setFromCamera(mouse, camera);
+	const bb = mesh.geometry.boundingBox;
+	const offsetX = (bb.max.x - bb.min.x)/2;
+	const offsetY = (bb.max.y - bb.min.y)/2;
+	const offsetZ = (bb.max.z - bb.min.z)/2;
+	const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -offsetZ); 
+
+	const intersection = new THREE.Vector3();
+	if (raycaster.ray.intersectPlane(dragPlane, intersection)) { 
+		const boundary = BUILD_VOLUME/2;
+		// Clamp to bounding box centered at origin in X-Y
+    	intersection.x = Math.max(-boundary+offsetX, Math.min(boundary-offsetX, intersection.x));
+    	intersection.y = Math.max(-boundary+offsetY, Math.min(boundary-offsetY, intersection.y));
+		intersection.z = offsetZ;
+		mesh.position.copy(intersection);
+		lastValidPosition.copy(intersection);
+		const i = meshes.indexOf(mesh);
+		bboxes[i].update();
+	} else {
+		mesh.position.copy(lastValidPosition);
+	}
+});
+
+
+dragControls.addEventListener('hoveron', (e) => {
+	// e.object.material.shininess = 255;
+	e.object.material.specular.setHex(0x222222);
+});
+
+// Hover end
+dragControls.addEventListener('hoveroff', (e) => {
+	// e.object.material.shininess = 200;
+	e.object.material.specular.setHex(0x1111111);
+});
+
+// Track mouse position globally
+window.addEventListener('mousemove', (e) => {
+	latestClientX = e.clientX;
+	latestClientY = e.clientY;
+
+	const rect = renderer.domElement.getBoundingClientRect();
+	mouse.x = ((latestClientX - rect.left) / rect.width) * 2 - 1;
+	mouse.y = -((latestClientY - rect.top) / rect.height) * 2 + 1;
+});
+
+animate();
