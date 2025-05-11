@@ -3,7 +3,8 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const LAYER_HEIGHT = 0.2;// mm
-const AVG_LAYER_TIME = 2;// minute
+const AVG_MM_TIME = 0.055;
+const INFILL = 0.15;
 const BUILD_VOLUME = 180;
 const HOURLY_RATE = 0.5;
 const closeTemplate = document.getElementById("close");
@@ -221,6 +222,7 @@ function uploadModel() {
 			mesh.rotation.x = -Math.PI/2;
   
       		geometry.center();
+			geometry.computeVertexNormals();
 			const bb = mesh.geometry.boundingBox;
 			const l = bb.max.x - bb.min.x;
 			const w = bb.max.y - bb.min.y;
@@ -231,7 +233,7 @@ function uploadModel() {
 			mesh.translateZ(h / 2);    // Center the model
 
 			const card = createCard(file.name, i, key);
-			calculateModelProperties( card, l, w, h );
+			calculateModelProperties( card, l, w, h, geometry.attributes.position.array );
 			geometry.computeBoundingBox();
 
 			const box = new THREE.Box3().setFromObject(mesh);
@@ -251,18 +253,52 @@ function uploadModel() {
 document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
 document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
 
-function calculateModelProperties(card, l, w, h) {
+function calculateModelProperties(card, l, w, h, positions) {
 	const layers = card.querySelector('#layer-count');
 	const time = card.querySelector('#time-estimate');
 	const cost = card.querySelector('#cost-estimate');
 	const xInput = card.querySelector('#x');
     const yInput = card.querySelector('#y');
     const zInput = card.querySelector('#z');
+	let minZ = Infinity;
+	let maxZ = -Infinity;
+	// Determine model Z bounds
+	for (let i = 2; i < positions.length; i += 3) {
+		const z = positions[i];
+		if (z < minZ) minZ = z;
+		if (z > maxZ) maxZ = z;
+	}
 
 	const layerCount = Math.ceil(h.toFixed(2) / LAYER_HEIGHT);
 	layers.textContent = `${layerCount}`;
 
-	const timeEstimate = Math.floor(layerCount / AVG_LAYER_TIME);
+	let cumulativeArea = 0;
+	for (let i = 0; i < positions.length; i += 9) {
+		const a = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+		const b = new THREE.Vector3(positions[i + 3], positions[i + 4], positions[i + 5]);
+		const c = new THREE.Vector3(positions[i + 6], positions[i + 7], positions[i + 8]);
+
+		const zMin = Math.min(a.z, b.z, c.z);
+		const zMax = Math.max(a.z, b.z, c.z);
+
+		const startLayer = Math.floor((zMin - minZ) / LAYER_HEIGHT);
+		const endLayer = Math.floor((zMax - minZ) / LAYER_HEIGHT);
+		
+		const area = computeTriangleArea(a, b, c);
+		const layersSpanned = endLayer - startLayer + 1;
+		// console.log(i, area);
+
+		// Distribute area equally over layers the triangle spans
+		for (let layer = startLayer; layer <= endLayer; layer++) {
+			if (layer >= 0 && layer < layerCount) {
+				// layerAreas[layer] += area / layersSpanned;
+				cumulativeArea += (area / layersSpanned) * INFILL;
+			}
+		}
+	}
+
+	console.log(cumulativeArea);
+	const timeEstimate = Math.floor(cumulativeArea * AVG_MM_TIME);
 	time.textContent = `${timeEstimate}`;
 	const costEstimate = Math.floor((timeEstimate + 14) / 15) * HOURLY_RATE;
 	cost.textContent = `$${costEstimate.toFixed(2)}`;
@@ -275,6 +311,13 @@ function calculateModelProperties(card, l, w, h) {
     
     zInput.value = h.toFixed(2);
     zInput.style.color = h > BUILD_VOLUME ? 'red' : 'grey';
+}
+
+function computeTriangleArea(a, b, c) {
+    const ab = new THREE.Vector3().subVectors(b, a);
+    const ac = new THREE.Vector3().subVectors(c, a);
+    const cross = new THREE.Vector3().crossVectors(ab, ac);
+    return 0.5 * cross.length();
 }
 
 function scaleModel(card, id, e) {
