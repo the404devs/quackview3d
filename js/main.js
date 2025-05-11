@@ -336,12 +336,7 @@ function removeModel(card, id, e) {
 function setModelColor(card, id, e) {
 	const mesh = meshes[id];
 	mesh.material = colorMap[e.target.value];
-
-	scene.remove(bboxes[id]);
-    const box = new THREE.Box3().setFromObject(mesh);
-    const boxHelper = new THREE.Box3Helper(box, mesh.material.color);
-    scene.add(boxHelper);
-    bboxes[id] = boxHelper;
+	bboxes[id].material.copy(colorMap[e.target.value]);
 
 	card.style.backgroundColor = e.target.value;
 	const head = card.querySelector(".card-head");
