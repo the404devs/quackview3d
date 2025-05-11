@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0,0,1);
 
 const LAYER_HEIGHT = 0.2;// mm
-const AVG_MM_TIME = 0.055;
+const AVG_MM_TIME = 0.05;
 const INFILL = 0.15;
 const BUILD_VOLUME = 180;
 const HOURLY_RATE = 0.5;
@@ -283,7 +283,7 @@ function computeTimeEstimate(layerCount, positions) {
 		}
 	}
 
-	return Math.floor(cumulativeArea * AVG_MM_TIME);
+	return Math.ceil(cumulativeArea * AVG_MM_TIME);
 }
 
 function computeTriangleArea(a, b, c) {
@@ -371,11 +371,6 @@ function cameraSetup(camera) {
 	camera.updateProjectionMatrix();
 }
 
-// Handle window resize
-window.addEventListener('resize', () => {
-	cameraSetup(camera);
-	renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
-});
 
 document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
 document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
@@ -391,7 +386,6 @@ let latestClientY = 0;
 let lastValidPosition = new THREE.Vector3();
 
 const orbitControls = new OrbitControls( camera, renderer.domElement );
-		
 const dragControls = new DragControls( meshes, camera, renderer.domElement );
 dragControls.addEventListener( 'dragstart', function (e) { orbitControls.enabled = false; });
 dragControls.addEventListener( 'dragend', function () { orbitControls.enabled = true; } );
@@ -421,20 +415,15 @@ dragControls.addEventListener( 'drag', function(e) {
 		mesh.position.copy(lastValidPosition);
 	}
 });
-
-
 dragControls.addEventListener('hoveron', (e) => {
 	// e.object.material.shininess = 255;
 	e.object.material.specular.setHex(0x222222);
 });
-
-// Hover end
 dragControls.addEventListener('hoveroff', (e) => {
 	// e.object.material.shininess = 200;
 	e.object.material.specular.setHex(0x1111111);
 });
 
-// Track mouse position globally
 window.addEventListener('mousemove', (e) => {
 	latestClientX = e.clientX;
 	latestClientY = e.clientY;
@@ -442,6 +431,10 @@ window.addEventListener('mousemove', (e) => {
 	const rect = renderer.domElement.getBoundingClientRect();
 	mouse.x = ((latestClientX - rect.left) / rect.width) * 2 - 1;
 	mouse.y = -((latestClientY - rect.top) / rect.height) * 2 + 1;
+});
+window.addEventListener('resize', () => {
+	cameraSetup(camera);
+	renderer.setSize(renderTarget.clientWidth, renderTarget.clientHeight);
 });
 
 animate();

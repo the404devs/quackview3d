@@ -210,7 +210,7 @@ span.text-button > svg > path {
 }
 
 span.text-button:hover > svg > path {
-    fill: red;
+    fill: darkred;
 }
 
 span.text-button > svg {
