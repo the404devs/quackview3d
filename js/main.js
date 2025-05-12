@@ -76,7 +76,7 @@ function animate() {
 	requestAnimationFrame(animate);
 	
 	//   mesh.rotation.z += 0.01;
-	// controls.update(); // Required for damping
+	orbitControls.update(); // Required for damping
 	renderer.render(scene, camera);
 }
 
@@ -375,10 +375,6 @@ function cameraSetup(camera) {
 document.querySelector("button#file-upload-button").addEventListener("click", uploadTrigger);
 document.querySelector("input#file-upload-input").addEventListener("change", uploadModel, false);
 
-// const controls = new OrbitControls(camera, renderer.domElement);
-// controls.enableDamping = true; // Smooth movement
-// controls.dampingFactor = 0.05;
-
 const raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
 let latestClientX = 0;
@@ -386,6 +382,8 @@ let latestClientY = 0;
 let lastValidPosition = new THREE.Vector3();
 
 const orbitControls = new OrbitControls( camera, renderer.domElement );
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.05;
 const dragControls = new DragControls( meshes, camera, renderer.domElement );
 dragControls.addEventListener( 'dragstart', function (e) { orbitControls.enabled = false; });
 dragControls.addEventListener( 'dragend', function () { orbitControls.enabled = true; } );
