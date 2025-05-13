@@ -393,3 +393,9 @@ div#path-display {
     margin-bottom: 5px;
     align-items: center;
 }
+
+ul {
+    color: white;
+    font-family: 'Raleway', 'Arial', sans-serif;
+    text-align: left;
+}
