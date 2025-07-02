@@ -7,7 +7,7 @@ THREE.Object3D.DEFAULT_UP = new THREE.Vector3(0,0,1);
 
 const LAYER_HEIGHT = 0.2;// mm
 const AVG_MM_TIME = 0.05;
-const INFILL = 0.15;
+const INFILL = 0.10;
 const BUILD_VOLUME = 180;
 const HOURLY_RATE = 0.5;
 const closeTemplate = document.getElementById("close");
